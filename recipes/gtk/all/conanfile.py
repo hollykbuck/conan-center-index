@@ -52,7 +52,8 @@ class Gtk4Conan(ConanFile):
 
     def requirements(self):
         # INFO: gtkconfig.h:8 glib.h
-        self.requires("glib/[>=2.82 <3]", transitive_headers=True)
+        glib_req = "[>=2.89.3 <3]" if Version(self.version) >= "4.24.0" else "[>=2.82 <3]"
+        self.requires(f"glib/{glib_req}", transitive_headers=True)
         # INFO: gdktexture.h:26 gdk-pixbuf.h/gdk-pixbuf.h
         self.requires("gdk-pixbuf/[>=2.42 <3]", transitive_headers=True)
         # INFO: gdktypes.h:36 cairo.h
@@ -60,13 +61,16 @@ class Gtk4Conan(ConanFile):
         # INFO: gtkscrollinfo.h:29 graphene.h
         self.requires("graphene/1.10.8", transitive_headers=True)
         # INFO: gdkcairo.h:26 pango/pangocairo.h
-        self.requires("pango/[>=1.50.7 <2]", transitive_headers=True)
+        pango_req = "[>=1.58.0 <2]" if Version(self.version) >= "4.24.0" else "[>=1.50.7 <2]"
+        self.requires(f"pango/{pango_req}", transitive_headers=True)
         # TODO: Consider to depend on libjpeg-turbo
         self.requires("libjpeg/[>=9f]")
         self.requires("fribidi/1.0.13")
         self.requires("libpng/[>=1.6 <2]")
         self.requires("libtiff/[>=4.6.0 <5]")
         self.requires("libepoxy/1.5.10")
+        if self.settings.os == "Windows" and Version(self.version) >= "4.24.0":
+            self.requires("directx-headers/[>=1.611 <2]")
         if self.settings.os == "Linux":
             if self.options.with_wayland:
                 self.requires("xkbcommon/[>=1.5.0 <2]")
@@ -196,6 +200,8 @@ class Gtk4Conan(ConanFile):
             self.cpp_info.components["gtk-unix-print"].includedirs.append(os.path.join("include", "gtk-4.0", "unix-print"))
             self.cpp_info.components["gtk-unix-print"].requires = ["gtk-4"]
         elif self.settings.os == "Windows":
+            if Version(self.version) >= "4.24.0":
+                self.cpp_info.components["gtk-4"].requires.append("directx-headers::directx-headers")
             self.cpp_info.components["gtk-win32"].set_property("pkg_config_name", "gtk4-win32")
             self.cpp_info.components["gtk-win32"].set_property("pkg_config_custom_content", pkgconfig_vars)
             self.cpp_info.components["gtk-win32"].libdirs = []
