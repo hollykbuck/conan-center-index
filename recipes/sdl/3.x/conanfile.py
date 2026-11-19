@@ -56,6 +56,7 @@ class SDLConan(ConanFile):
             "xshape": [True, False],
             "xsync": [True, False],
             "wayland": [True, False],
+            "libdecor": [True, False],
             "vulkan": [True, False],
             "metal": [True, False],
             "directx": [True, False],
@@ -91,6 +92,7 @@ class SDLConan(ConanFile):
             "xshape": True,
             "xsync": True,
             "wayland": True,
+            "libdecor": False,
             "vulkan": True,
             "metal": True,
             "directx": True,
@@ -123,6 +125,7 @@ class SDLConan(ConanFile):
             del self.options.xshape
             del self.options.xsync
             del self.options.wayland
+            del self.options.libdecor
 
         if not is_apple_os(self):
             del self.options.metal
@@ -157,6 +160,9 @@ class SDLConan(ConanFile):
             self.options.rm_safe("wayland")
             self.options.rm_safe("vulkan")
             self.options.rm_safe("metal")
+
+        if not self.options.get_safe("wayland"):
+            self.options.rm_safe("libdecor")
 
         if not self.options.get_safe("x11"):
             self.options.rm_safe("xcursor")
@@ -234,6 +240,8 @@ class SDLConan(ConanFile):
             # Version comes from xkbcommon
             self.requires("wayland/[^1.22]")
             self.requires("egl/system")
+            if self.options.get_safe("libdecor"):
+                self.requires("libdecor/system")
         if self.options.get_safe("x11"):
             self.requires("xorg/system")
 
@@ -306,6 +314,10 @@ class SDLConan(ConanFile):
         tc.cache_variables["SDL_WAYLAND"] = with_wayland
         if with_wayland:
             tc.cache_variables["SDL_WAYLAND_SHARED"] = self.dependencies["wayland"].options.shared
+            with_libdecor = self.options.get_safe("libdecor", False)
+            tc.cache_variables["SDL_WAYLAND_LIBDECOR"] = with_libdecor
+            if with_libdecor:
+                tc.cache_variables["SDL_WAYLAND_LIBDECOR_SHARED"] = self.dependencies["libdecor"].options.get_safe("shared", True)
         if not with_x11 and not with_wayland:
             # Disable windowing support:
             # https://github.com/libsdl-org/SDL/blob/main/docs/README-cmake.md#cmake-fails-to-build-without-x11-or-wayland-support
@@ -375,6 +387,8 @@ class SDLConan(ConanFile):
 
         if self.options.get_safe("wayland"):
             self.cpp_info.components["sdl3"].requires.extend(["wayland::wayland", "xkbcommon::xkbcommon", "egl::egl"])
+            if self.options.get_safe("libdecor"):
+                self.cpp_info.components["sdl3"].requires.append("libdecor::libdecor")
 
         if self.options.get_safe("x11"):
             self.cpp_info.components["sdl3"].requires.extend(["xorg::x11", "xorg::xext"])
