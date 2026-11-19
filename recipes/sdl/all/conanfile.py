@@ -44,6 +44,7 @@ class SDLConan(ConanFile):
         "xshape": [True, False],
         "xvm": [True, False],
         "wayland": [True, False],
+        "libdecor": [True, False],
         "directfb": [True, False],
         "iconv": [True, False],
         "video_rpi": [True, False],
@@ -74,6 +75,7 @@ class SDLConan(ConanFile):
         "xshape": True,
         "xvm": True,
         "wayland": True,
+        "libdecor": False,
         "directfb": False,
         "video_rpi": False,
         "sdl2main": True,
@@ -133,6 +135,7 @@ class SDLConan(ConanFile):
             del self.options.xshape
             del self.options.xvm
             del self.options.wayland
+            del self.options.libdecor
             del self.options.directfb
             del self.options.video_rpi
             del self.options.libunwind
@@ -146,6 +149,8 @@ class SDLConan(ConanFile):
         if not (self.settings.os == "Android" and self.options.hidapi):
             self.settings.rm_safe("compiler.libcxx")
             self.settings.rm_safe("compiler.cppstd")
+        if not self.options.get_safe("wayland"):
+            self.options.rm_safe("libdecor")
 
     def requirements(self):
         if self.options.get_safe("iconv", False):
@@ -165,6 +170,8 @@ class SDLConan(ConanFile):
                 # Version comes from xkbcommon
                 self.requires("wayland/[^1.22]")
                 self.requires("egl/system")
+                if self.options.libdecor:
+                    self.requires("libdecor/system")
             if self.options.libunwind:
                 self.requires("libunwind/1.8.0")
 
@@ -290,6 +297,9 @@ class SDLConan(ConanFile):
                 # FIXME: Otherwise 2.0.16 links with system wayland (from egl/system requirement)
                 cmake_extra_ldflags += ["-L{}".format(it) for it in self.dependencies["wayland"].cpp_info.libdirs]
                 tc.variables["SDL_WAYLAND_SHARED"] = self.dependencies["wayland"].options.shared
+                tc.variables["SDL_WAYLAND_LIBDECOR"] = self.options.libdecor
+                if self.options.libdecor:
+                    tc.variables["SDL_WAYLAND_LIBDECOR_SHARED"] = self.dependencies["libdecor"].options.get_safe("shared", True)
 
                 wayland = self.dependencies["wayland"] if not hasattr(self, "settings_build") else self.dependencies.build["wayland"]
                 wayland_bin_dir = wayland.cpp_info.bindirs[0] # for wayland scanner
@@ -389,6 +399,8 @@ class SDLConan(ConanFile):
                 self.cpp_info.components["libsdl2"].requires.append("wayland::wayland")
                 self.cpp_info.components["libsdl2"].requires.append("xkbcommon::xkbcommon")
                 self.cpp_info.components["libsdl2"].requires.append("egl::egl")
+                if self.options.libdecor:
+                    self.cpp_info.components["libsdl2"].requires.append("libdecor::libdecor")
             if self.options.libunwind:
                 self.cpp_info.components["libsdl2"].requires.append("libunwind::libunwind")
         elif is_apple_os(self) and not self.options.shared:
